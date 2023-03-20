@@ -57,7 +57,7 @@ class DummyControllerInterface:
 if __name__ == '__main__':
     interfaces = ['dummy', 'serial']
     argparse = argparse.ArgumentParser()
-    argparse.add_argument('serial_port', type=str)
+    # argparse.add_argument('serial_port', type=str)
     argparse.add_argument('-b', '--baudrate', type=int, default=115200)
     argparse.add_argument('-c', '--controller_interface', type=str, default='serial', choices=interfaces)
     argparse.add_argument('-d', '--debug', default=False, action='store_true')
@@ -65,11 +65,11 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    print("Connection to {} using {} interface ({})".format(args.serial_port, args.controller_interface, args.baudrate))
+    print("Connection to {} using {} interface ({})".format("COM3", args.controller_interface, args.baudrate))
     if args.controller_interface == 'dummy':
         controller = DummyControllerInterface()
     else:
-        controller = SerialControllerInterface(port=args.serial_port, baudrate=args.baudrate)
+        controller = SerialControllerInterface(port="COM3", baudrate=args.baudrate)
 
     while True:
         controller.update()
