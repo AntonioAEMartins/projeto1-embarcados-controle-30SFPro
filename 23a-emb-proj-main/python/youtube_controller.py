@@ -30,6 +30,7 @@ class SerialControllerInterface:
         data = self.ser.read()
         logging.debug("Received DATA: {}".format(data))
 
+        # Botao 1 | Vermelho
         if data == b'1':
             print("datab1")
             logging.info("KEYDOWN A")
@@ -38,7 +39,33 @@ class SerialControllerInterface:
             print("datab0")
             logging.info("KEYUP A")
             pyautogui.keyUp(self.mapping.button['A'])
-
+        # Botao 2 | Verde
+        if data == b'3':
+            print("datab2")
+            logging.info("KEYDOWN A")
+            pyautogui.keyDown(self.mapping.button['A'])
+        elif data == b'2':
+            print("datab0")
+            logging.info("KEYUP A")
+            pyautogui.keyUp(self.mapping.button['A'])
+        # Botao 3 | Azul
+        if data == b'5':
+            print("datab3")
+            logging.info("KEYDOWN A")
+            pyautogui.keyDown(self.mapping.button['A'])
+        elif data == b'4':
+            print("datab0")
+            logging.info("KEYUP A")
+            pyautogui.keyUp(self.mapping.button['A'])
+        # Botao 4 | Amarelo
+        if data == b'7':
+            print("datab4")
+            logging.info("KEYDOWN A")
+            pyautogui.keyDown(self.mapping.button['A'])
+        elif data == b'6':
+            print("datab0")
+            logging.info("KEYUP A")
+            pyautogui.keyUp(self.mapping.button['A'])
         self.incoming = self.ser.read()
 
 
@@ -72,3 +99,4 @@ if __name__ == '__main__':
 
     while True:
         controller.update()
+L

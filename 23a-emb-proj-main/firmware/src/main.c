@@ -19,11 +19,28 @@
 #define LED_IDX      8
 #define LED_IDX_MASK (1 << LED_IDX)
 
-// Botão
-#define BUT_PIO      PIOA
-#define BUT_PIO_ID   ID_PIOA
-#define BUT_IDX      11
-#define BUT_IDX_MASK (1 << BUT_IDX)
+// Botoes
+	// Botao Vermelho (1)
+#define BUT1_PIO      PIOD
+#define BUT1_PIO_ID   ID_PIOD
+#define BUT1_IDX      30
+#define BUT1_IDX_MASK (1 << BUT1_IDX)
+	// Botao Verde (2)
+#define BUT2_PIO      PIOA
+#define BUT2_PIO_ID   ID_PIOA
+#define BUT2_IDX      6
+#define BUT2_IDX_MASK (1 << BUT2_IDX)
+	// Botao Azul (3)
+#define BUT3_PIO      PIOC
+#define BUT3_PIO_ID   ID_PIOC
+#define BUT3_IDX      19
+#define BUT3_IDX_MASK (1 << BUT3_IDX)
+	// Botao Amarelo (4)
+#define BUT4_PIO      PIOA
+#define BUT4_PIO_ID   ID_PIOA
+#define BUT4_IDX      2
+#define BUT4_IDX_MASK (1 << BUT4_IDX)
+
 
 // usart (bluetooth ou serial)
 // Descomente para enviar dados
@@ -111,11 +128,17 @@ void io_init(void) {
 
 	// Ativa PIOs
 	pmc_enable_periph_clk(LED_PIO_ID);
-	pmc_enable_periph_clk(BUT_PIO_ID);
+	pmc_enable_periph_clk(BUT1_PIO_ID);
+	pmc_enable_periph_clk(BUT2_PIO_ID);
+	pmc_enable_periph_clk(BUT3_PIO_ID);
+	pmc_enable_periph_clk(BUT4_PIO_ID);
 
 	// Configura Pinos
 	pio_configure(LED_PIO, PIO_OUTPUT_0, LED_IDX_MASK, PIO_DEFAULT | PIO_DEBOUNCE);
-	pio_configure(BUT_PIO, PIO_INPUT, BUT_IDX_MASK, PIO_PULLUP);
+	pio_configure(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK, PIO_PULLUP);
+	pio_configure(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK, PIO_PULLUP);
+	pio_configure(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK, PIO_PULLUP);
+	pio_configure(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK, PIO_PULLUP);
 }
 
 static void configure_console(void) {
@@ -223,16 +246,32 @@ void task_bluetooth(void) {
 	io_init();
 
 	char button1 = '0';
+	
 	char eof = 'X';
 
 	// Task não deve retornar.
 	while(1) {
 		// atualiza valor do botão
-		if(pio_get(BUT_PIO, PIO_INPUT, BUT_IDX_MASK) == 0) {
+		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
 			button1 = '1';
 		} else {
 			button1 = '0';
 		}
+// 		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
+// 			button1 = '3';
+// 		} else {
+// 			button1 = '2';
+// 		}
+// 		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
+// 			button1 = '5';
+// 		} else {
+// 			button1 = '4';
+// 		}
+// 		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
+// 			button1 = '7';
+// 		} else {
+// 			button1 = '6';
+// 		}
 
 		// envia status botão
 		while(!usart_is_tx_ready(USART_COM)) {
