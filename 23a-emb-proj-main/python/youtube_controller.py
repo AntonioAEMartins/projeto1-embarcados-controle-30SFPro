@@ -41,7 +41,6 @@ class SerialControllerInterface:
             recebido.append(data)
             logging.debug("Received DATA: {}".format(data))
         if len(recebido) > 0:
-            print("F")
             #Buttons Detection
             if recebido[0] == b'1':
                 print("datab1")
@@ -75,6 +74,10 @@ class SerialControllerInterface:
                 print("datab8")
                 logging.info("Button 8")
                 pyautogui.keyDown(self.mapping.button['B8'])
+            if recebido[8] == b'1':
+                print("pause")
+                logging.info("Pause")
+                pyautogui.keyDown(self.mapping.button['B9'])
 
         # elif data == b'0':
         #     print("datab0")
