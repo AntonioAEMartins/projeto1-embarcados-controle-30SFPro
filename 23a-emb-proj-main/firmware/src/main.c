@@ -20,46 +20,51 @@
 #define LED_IDX_MASK (1 << LED_IDX)
 
 // Botoes
-	// Botao Vermelho (1)
-#define BUT1_PIO      PIOD
-#define BUT1_PIO_ID   ID_PIOD
-#define BUT1_IDX      30
+	// Lado Direito
+#define BUT1_PIO      PIOA
+#define BUT1_PIO_ID   ID_PIOA
+#define BUT1_IDX      13
 #define BUT1_IDX_MASK (1 << BUT1_IDX)
-	// Botao Verde (2)
-#define BUT2_PIO      PIOA
-#define BUT2_PIO_ID   ID_PIOA
-#define BUT2_IDX      6
+
+#define BUT2_PIO      PIOC
+#define BUT2_PIO_ID   ID_PIOC
+#define BUT2_IDX      19
 #define BUT2_IDX_MASK (1 << BUT2_IDX)
-	// Botao Azul (3)
-#define BUT3_PIO      PIOC
-#define BUT3_PIO_ID   ID_PIOC
-#define BUT3_IDX      19
+
+#define BUT3_PIO      PIOA
+#define BUT3_PIO_ID   ID_PIOA
+#define BUT3_IDX      6
 #define BUT3_IDX_MASK (1 << BUT3_IDX)
-	// Botao Amarelo (4)
-#define BUT4_PIO      PIOA
-#define BUT4_PIO_ID   ID_PIOA
-#define BUT4_IDX      2
+
+#define BUT4_PIO      PIOD
+#define BUT4_PIO_ID   ID_PIOD
+#define BUT4_IDX      25
 #define BUT4_IDX_MASK (1 << BUT4_IDX)
-// Botao Vermelho (1)
-#define BUT5_PIO      PIOA
-#define BUT5_PIO_ID   ID_PIOA
-#define BUT5_IDX      3
+	// Lado Esquerdo
+#define BUT5_PIO      PIOD
+#define BUT5_PIO_ID   ID_PIOD
+#define BUT5_IDX      24
 #define BUT5_IDX_MASK (1 << BUT5_IDX)
-// Botao Verde (2)
+
 #define BUT6_PIO      PIOA
 #define BUT6_PIO_ID   ID_PIOA
-#define BUT6_IDX      21
+#define BUT6_IDX      24
 #define BUT6_IDX_MASK (1 << BUT6_IDX)
-// Botao Azul (3)
-#define BUT7_PIO      PIOD
-#define BUT7_PIO_ID   ID_PIOD
-#define BUT7_IDX      27
+
+#define BUT7_PIO      PIOB
+#define BUT7_PIO_ID   ID_PIOB
+#define BUT7_IDX      3
 #define BUT7_IDX_MASK (1 << BUT7_IDX)
-// Botao Amarelo (4)
-#define BUT8_PIO      PIOD
-#define BUT8_PIO_ID   ID_PIOD
-#define BUT8_IDX      20
+
+#define BUT8_PIO      PIOA
+#define BUT8_PIO_ID   ID_PIOA
+#define BUT8_IDX      9
 #define BUT8_IDX_MASK (1 << BUT8_IDX)
+	// Botoes Pause 
+#define BUT9_PIO      PIOA
+#define BUT9_PIO_ID   ID_PIOA
+#define BUT9_IDX      5
+#define BUT9_IDX_MASK (1 << BUT9_IDX)
 
 // usart (bluetooth ou serial)
 // Descomente para enviar dados
@@ -75,16 +80,13 @@
 #define USART_COM_ID ID_USART0
 #endif
 
-/************************************************************************/
-/* RTOS                                                                 */
+
 /************************************************************************/
 
 #define TASK_BLUETOOTH_STACK_SIZE            (4096/sizeof(portSTACK_TYPE))
 #define TASK_BLUETOOTH_STACK_PRIORITY        (tskIDLE_PRIORITY)
 
-/************************************************************************/
-/* prototypes                                                           */
-/************************************************************************/
+
 
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 signed char *pcTaskName);
@@ -93,19 +95,6 @@ extern void vApplicationTickHook(void);
 extern void vApplicationMallocFailedHook(void);
 extern void xPortSysTickHandler(void);
 
-/************************************************************************/
-/* constants                                                            */
-/************************************************************************/
-
-/************************************************************************/
-/* variaveis globais                                                    */
-/************************************************************************/
-
-/************************************************************************/
-/* RTOS application HOOK                                                */
-/************************************************************************/
-
-/* Called if stack overflow during execution */
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 signed char *pcTaskName) {
 	printf("stack overflow %x %s\r\n", pxTask, (portCHAR *)pcTaskName);
@@ -135,13 +124,6 @@ extern void vApplicationMallocFailedHook(void) {
 	configASSERT( ( volatile void * ) NULL );
 }
 
-/************************************************************************/
-/* handlers / callbacks                                                 */
-/************************************************************************/
-
-/************************************************************************/
-/* funcoes                                                              */
-/************************************************************************/
 
 void io_init(void) {
 
@@ -273,6 +255,14 @@ void task_bluetooth(void) {
 	io_init();
 
 	char button1 = '0';
+	char button2 = '0';
+	char button3 = '0';
+	char button4 = '0';
+	char button5 = '0';
+	char button6 = '0';
+	char button7 = '0';
+	char button8 = '0';
+	char button9 = '0';
 	
 	char eof = 'X';
 
@@ -281,46 +271,71 @@ void task_bluetooth(void) {
 		// atualiza valor do botão
 		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
 			button1 = '1';
+ 		} else {
+			 button1 = '0';
 		}
-		else if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
-			button1 = '2';
+		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
+			button2 = '1';
+		} else {
+			button2 = '0';
 		}
-		else if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
-			button1 = '3';
-		}
-		else if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
-			button1 = '4';
-		}
-		else if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
-			button1 = '5';
-		}
-		else if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
-			button1 = '6';
-		}
-		else if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
-			button1 = '7';
-		}
-		else if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
-			button1 = '8';
+		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
+			button3 = '1';
+		} else {
+			button3 = '0';
 		}
 		
-		else if (button1 != 0){
-			button1 = e;
+		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
+			button4 = '1';
+		} else {
+			button4 = '0';
 		}
 		
+		if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
+			button5 = '1';
+		} else {
+			button5 = '0';
+		}
+		
+		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
+			button6 = '1';
+		} else {
+			button6 = '0';
+		}
+		
+		if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
+			button7 = '1';
+		} else {
+			button7 = '0';
+		}
+		
+		if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
+			button8 = '1';
+		} else {
+			button8 = '0';
+		}
+		
+// 		printf("Button 1: %c\n", button1);
+// 		printf("Button 2: %c\n", button2);
+// 		printf("Button 3: %c\n", button3);
+// 		printf("Button 4: %c\n", button4);
+		printf("Button 5: %c\n", button5);
+		printf("Button 6: %c\n", button6);
+		printf("Button 7: %c\n", button7);
+		printf("Button 8: %c\n", button8);
 		
 
-		// envia status botão
-		while(!usart_is_tx_ready(USART_COM)) {
-			vTaskDelay(10 / portTICK_PERIOD_MS);
-		}
-		usart_write(USART_COM, button1);
-		
-		// envia fim de pacote
-		while(!usart_is_tx_ready(USART_COM)) {
-			vTaskDelay(10 / portTICK_PERIOD_MS);
-		}
-		usart_write(USART_COM, eof);
+// 		// envia status botão
+// 		while(!usart_is_tx_ready(USART_COM)) {
+// 			vTaskDelay(10 / portTICK_PERIOD_MS);
+// 		}
+// 		usart_write(USART_COM, button1);
+// 		
+// 		// envia fim de pacote
+// 		while(!usart_is_tx_ready(USART_COM)) {
+// 			vTaskDelay(10 / portTICK_PERIOD_MS);
+// 		}
+// 		usart_write(USART_COM, eof);
 
 		// dorme por 500 ms
 		vTaskDelay(500 / portTICK_PERIOD_MS);
