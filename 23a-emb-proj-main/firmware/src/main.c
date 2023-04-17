@@ -253,16 +253,8 @@ void task_bluetooth(void) {
 
 	// configura LEDs e Botões
 	io_init();
-
-	char button1 = '0';
-	char button2 = '0';
-	char button3 = '0';
-	char button4 = '0';
-	char button5 = '0';
-	char button6 = '0';
-	char button7 = '0';
-	char button8 = '0';
-	char button9 = '0';
+	
+	char buttons[10] = "000000000";
 	
 	char eof = 'X';
 
@@ -270,59 +262,66 @@ void task_bluetooth(void) {
 	while(1) {
 		// atualiza valor do botão
 		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
-			button1 = '1';
+			buttons[0] = '1';
  		} else {
-			 button1 = '0';
+			 buttons[0] = '0';
 		}
 		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
-			button2 = '1';
+			buttons[1] = '1';
 		} else {
-			button2 = '0';
+			buttons[1] = '0';
 		}
 		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
-			button3 = '1';
+			buttons[2] = '1';
 		} else {
-			button3 = '0';
+			buttons[2] = '0';
 		}
 		
 		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
-			button4 = '1';
+			buttons[3] = '1';
 		} else {
-			button4 = '0';
+			buttons[3] = '0';
 		}
 		
 		if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
-			button5 = '1';
+			buttons[4] = '1';
 		} else {
-			button5 = '0';
+			buttons[4] = '0';
 		}
 		
 		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
-			button6 = '1';
+			buttons[5] = '1';
 		} else {
-			button6 = '0';
+			buttons[5] = '0';
 		}
 		
 		if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
-			button7 = '1';
+			buttons[6] = '1';
 		} else {
-			button7 = '0';
+			buttons[6] = '0';
 		}
 		
 		if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
-			button8 = '1';
+			buttons[7] = '1';
 		} else {
-			button8 = '0';
+			buttons[7] = '0';
 		}
 		
-// 		printf("Button 1: %c\n", button1);
-// 		printf("Button 2: %c\n", button2);
-// 		printf("Button 3: %c\n", button3);
-// 		printf("Button 4: %c\n", button4);
-		printf("Button 5: %c\n", button5);
-		printf("Button 6: %c\n", button6);
-		printf("Button 7: %c\n", button7);
-		printf("Button 8: %c\n", button8);
+		if(pio_get(BUT9_PIO, PIO_INPUT, BUT9_IDX_MASK) == 0) {
+			buttons[8] = '1';
+			} else {
+			buttons[8] = '0';
+		}
+		
+		
+// 		printf("Button 1: %c\n", buttons[0]);
+// 		printf("Button 2: %c\n", buttons[1]);
+// 		printf("Button 3: %c\n", buttons[2]);
+// 		printf("Button 4: %c\n", buttons[3]);
+// 		printf("Button 5: %c\n", buttons[4]);
+// 		printf("Button 6: %c\n", buttons[5]);
+// 		printf("Button 7: %c\n", buttons[6]);
+// 		printf("Button 8: %c\n", buttons[7]);
 		
 
 // 		// envia status botão
