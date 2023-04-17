@@ -6,7 +6,7 @@ import logging
 
 class MyControllerMap:
     def __init__(self):
-        self.button = {'A': 'L'} # Fast forward (10 seg) pro Youtube
+        self.button = {'A': 'K'} # Fast forward (10 seg) pro Youtube
 
 class SerialControllerInterface:
     # Protocolo
@@ -30,42 +30,17 @@ class SerialControllerInterface:
         data = self.ser.read()
         logging.debug("Received DATA: {}".format(data))
 
-        # Botao 1 | Vermelho
         if data == b'1':
             print("datab1")
             logging.info("KEYDOWN A")
             pyautogui.keyDown(self.mapping.button['A'])
+        if data == b'e':
+            print("salve")
         elif data == b'0':
             print("datab0")
             logging.info("KEYUP A")
             pyautogui.keyUp(self.mapping.button['A'])
-        # Botao 2 | Verde
-        if data == b'3':
-            print("datab2")
-            logging.info("KEYDOWN A")
-            pyautogui.keyDown(self.mapping.button['A'])
-        elif data == b'2':
-            print("datab0")
-            logging.info("KEYUP A")
-            pyautogui.keyUp(self.mapping.button['A'])
-        # Botao 3 | Azul
-        if data == b'5':
-            print("datab3")
-            logging.info("KEYDOWN A")
-            pyautogui.keyDown(self.mapping.button['A'])
-        elif data == b'4':
-            print("datab0")
-            logging.info("KEYUP A")
-            pyautogui.keyUp(self.mapping.button['A'])
-        # Botao 4 | Amarelo
-        if data == b'7':
-            print("datab4")
-            logging.info("KEYDOWN A")
-            pyautogui.keyDown(self.mapping.button['A'])
-        elif data == b'6':
-            print("datab0")
-            logging.info("KEYUP A")
-            pyautogui.keyUp(self.mapping.button['A'])
+
         self.incoming = self.ser.read()
 
 
@@ -91,12 +66,11 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    print("Connection to {} using {} interface ({})".format("COM3",args.controller_interface, args.baudrate))
+    print("Connection to {} using {} interface ({})".format("COM4",args.controller_interface, args.baudrate))
     if args.controller_interface == 'dummy':
         controller = DummyControllerInterface()
     else:
-        controller = SerialControllerInterface(port="COM3", baudrate=args.baudrate)
+        controller = SerialControllerInterface(port="COM4", baudrate=args.baudrate)
 
     while True:
         controller.update()
-L
