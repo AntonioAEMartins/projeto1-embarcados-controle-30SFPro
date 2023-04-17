@@ -343,7 +343,7 @@ void task_bluetooth(void) {
 		//usart_write(USART_COM, eof);
 
 		// dorme por 500 ms
-		vTaskDelay(100 / portTICK_PERIOD_MS);
+		vTaskDelay(5 / portTICK_PERIOD_MS);
 	}
 }
 
