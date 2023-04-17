@@ -257,6 +257,7 @@ void task_bluetooth(void) {
 	char buttons[10] = "000000000";
 	
 	char eof = 'X';
+	printf("%c",eof);
 
 	// Task não deve retornar.
 	while(1) {
@@ -314,7 +315,7 @@ void task_bluetooth(void) {
 		}
 		
 		
-// 		printf("Button 1: %c\n", buttons[0]);
+		
 // 		printf("Button 2: %c\n", buttons[1]);
 // 		printf("Button 3: %c\n", buttons[2]);
 // 		printf("Button 4: %c\n", buttons[3]);
@@ -324,20 +325,25 @@ void task_bluetooth(void) {
 // 		printf("Button 8: %c\n", buttons[7]);
 		
 
-// 		// envia status botão
+		// envia status botão
 // 		while(!usart_is_tx_ready(USART_COM)) {
 // 			vTaskDelay(10 / portTICK_PERIOD_MS);
 // 		}
+		printf("X");
+		for (int i = 0; i < 9; i++){
+			printf("%c", buttons[i]);
+		}
+		printf("X");
 // 		usart_write(USART_COM, button1);
 // 		
-// 		// envia fim de pacote
-// 		while(!usart_is_tx_ready(USART_COM)) {
-// 			vTaskDelay(10 / portTICK_PERIOD_MS);
-// 		}
-// 		usart_write(USART_COM, eof);
+		// envia fim de pacote
+//  		while(!usart_is_tx_ready(USART_COM)) {
+//  			vTaskDelay(10 / portTICK_PERIOD_MS);
+//  		}
+		//usart_write(USART_COM, eof);
 
 		// dorme por 500 ms
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
 }
 
