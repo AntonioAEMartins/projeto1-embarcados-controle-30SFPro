@@ -6,7 +6,14 @@ import logging
 
 class MyControllerMap:
     def __init__(self):
-        self.button = {'A': 'K'} # Fast forward (10 seg) pro Youtube
+        self.button = {'B1': 'K',
+                        'B2':'A',
+                        'B3':'B',
+                        'B4':'B',
+                        'B5': 'K',
+                        'B6':'A',
+                        'B7':'B',
+                        'B8':'A',} # Fast forward (10 seg) pro Youtube
 
 class SerialControllerInterface:
     # Protocolo
@@ -30,10 +37,46 @@ class SerialControllerInterface:
         data = self.ser.read()
         logging.debug("Received DATA: {}".format(data))
 
+        # Buttons Detection
         if data == b'1':
             print("datab1")
-            logging.info("KEYDOWN A")
-            pyautogui.keyDown(self.mapping.button['A'])
+            logging.info("Button 1")
+            pyautogui.keyDown(self.mapping.button['B1'])
+        elif data == b'2':
+            print("datab1")
+            logging.info("Button 2")
+            pyautogui.keyDown(self.mapping.button['B2'])
+        elif data == b'3':
+            print("datab1")
+            logging.info("Button 3")
+            pyautogui.keyDown(self.mapping.button['B3'])
+        elif data == b'4':
+            print("datab1")
+            logging.info("Button 4")
+            pyautogui.keyDown(self.mapping.button['B4'])
+        elif data == b'5':
+            print("datab1")
+            logging.info("Button 5")
+            pyautogui.keyDown(self.mapping.button['B5'])
+        elif data == b'6':
+            print("datab1")
+            logging.info("Button 6")
+            pyautogui.keyDown(self.mapping.button['B6'])
+        elif data == b'7':
+            print("datab1")
+            logging.info("Button 7")
+            pyautogui.keyDown(self.mapping.button['B7'])
+        elif data == b'8':
+            print("datab1")
+            logging.info("Button 8")
+            pyautogui.keyDown(self.mapping.button['B8'])
+        # Buttons Error Detection
+        elif data == b'e':
+            print("Erro ao Detectar Botao")
+            logging.info("Error")
+
+
+
         if data == b'e':
             print("salve")
         elif data == b'0':
