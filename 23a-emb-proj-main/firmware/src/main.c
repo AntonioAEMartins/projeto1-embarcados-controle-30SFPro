@@ -14,13 +14,21 @@
 /************************************************************************/
 
 // analogico
-#define AFEC_VX AFEC0
-#define AFEC_VX_ID ID_AFEC0
-#define AFEC_VX_CHANNEL 0 // Canal do pino PD30
+#define AFEC_VX1 AFEC0
+#define AFEC_VX1_ID ID_AFEC0
+#define AFEC_VX1_CHANNEL 0 // Canal do pino PD30
 
-#define AFEC_VY AFEC0
-#define AFEC_VY_ID ID_AFEC0
-#define AFEC_VY_CHANNEL 5 // Canal do pino PB2
+#define AFEC_VY1 AFEC0
+#define AFEC_VY1_ID ID_AFEC0
+#define AFEC_VY1_CHANNEL 5 // Canal do pino PB2
+
+#define AFEC_VX2 AFEC1
+#define AFEC_VX2_ID ID_AFEC1
+#define AFEC_VX2_CHANNEL 1 // Canal do pino Pc13
+
+#define AFEC_VY2 AFEC1
+#define AFEC_VY2_ID ID_AFEC1
+#define AFEC_VY2_CHANNEL 6 // Canal do pino Pc31
 
 /* 
 MAIS PINOS PARA USAR ANALOGICO 
@@ -48,9 +56,16 @@ AFEC1 Canal 1 pc31
 /* FILA DO ADC */
 QueueHandle_t xQueueA1VX;
 QueueHandle_t xQueueA1VY;
-// QueueHandle_t xQueueA1VXdigital;
-// QueueHandle_t xQueueA1VYdigital;
-SemaphoreHandle_t xSemaphoreLeitura;
+QueueHandle_t xQueueA1VXdigital;
+QueueHandle_t xQueueA1VYdigital;
+
+QueueHandle_t xQueueA2VX;
+QueueHandle_t xQueueA2VY;
+QueueHandle_t xQueueA2VXdigital;
+QueueHandle_t xQueueA2VYdigital;
+
+TimerHandle_t xTimerA1VX;
+TimerHandle_t xTimerA1VY;
 
 #define TASK_BLUETOOTH_STACK_SIZE (4096 / sizeof(portSTACK_TYPE))
 #define TASK_BLUETOOTH_STACK_PRIORITY (tskIDLE_PRIORITY)
@@ -65,11 +80,16 @@ extern void vApplicationIdleHook(void);
 extern void vApplicationTickHook(void);
 extern void vApplicationMallocFailedHook(void);
 extern void xPortSysTickHandler(void);
-static void config_AFEC_pot(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
-                            afec_callback_t callback);
-static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSource);
+static void config_AFEC_pot(Afec *afec);
+static void config_AFEC_channel(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
+                                afec_callback_t callback);
+// static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSource);
 static void AFEC_a1vx_callback(void);
 static void AFEC_a1vy_callback(void);
+static void AFEC_a2vx_callback(void);
+static void AFEC_a2vy_callback(void);
+void xTimerA1VXCallback(TimerHandle_t xTimerA1VX);
+void xTimerA1VYCallback(TimerHandle_t xTimerA1VY);
 /************************************************************************/
 /* constants                                                            */
 /************************************************************************/
@@ -116,47 +136,10 @@ extern void vApplicationMallocFailedHook(void) {
 /* handlers / callbacks                                                 */
 /************************************************************************/
 
-static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSource) {
-
-	uint16_t pllPreScale = (int) (((float) 32768) / freqPrescale);
-	
-	rtt_sel_source(RTT, false);
-	rtt_init(RTT, pllPreScale);
-	
-	if (rttIRQSource & RTT_MR_ALMIEN) {
-		uint32_t ul_previous_time;
-		ul_previous_time = rtt_read_timer_value(RTT);
-		while (ul_previous_time == rtt_read_timer_value(RTT));
-		rtt_write_alarm_time(RTT, IrqNPulses+ul_previous_time);
-	}
-
-	/* config NVIC */
-	NVIC_DisableIRQ(RTT_IRQn);
-	NVIC_ClearPendingIRQ(RTT_IRQn);
-	NVIC_SetPriority(RTT_IRQn, 4);
-	NVIC_EnableIRQ(RTT_IRQn);
-
-	/* Enable RTT interrupt */
-	if (rttIRQSource & (RTT_MR_RTTINCIEN | RTT_MR_ALMIEN))
-	rtt_enable_interrupt(RTT, rttIRQSource);
-	else
-	rtt_disable_interrupt(RTT, RTT_MR_RTTINCIEN | RTT_MR_ALMIEN);
-}
-
-void RTT_Handler(void){
-	uint32_t ul_status;
-	ul_status = rtt_get_status(RTT);
-    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
-	
-	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS){
-        xSemaphoreGiveFromISR(xSemaphoreLeitura,&xHigherPriorityTaskWoken);
-	}
-}
-
 static void AFEC_a1vx_callback(void) {
 
     uint32_t a1_vx;
-    a1_vx = afec_channel_get_value(AFEC_VX, AFEC_VX_CHANNEL);
+    a1_vx = afec_channel_get_value(AFEC_VX1, AFEC_VX1_CHANNEL);
     BaseType_t xHigherPriorityTaskWoken = pdTRUE;
     xQueueSendFromISR(xQueueA1VX, &a1_vx, &xHigherPriorityTaskWoken);
 }
@@ -164,9 +147,25 @@ static void AFEC_a1vx_callback(void) {
 static void AFEC_a1vy_callback(void) {
 
     uint32_t a1_vy;
-    a1_vy = afec_channel_get_value(AFEC_VY, AFEC_VY_CHANNEL);
+    a1_vy = afec_channel_get_value(AFEC_VY1, AFEC_VY1_CHANNEL);
     BaseType_t xHigherPriorityTaskWoken = pdTRUE;
     xQueueSendFromISR(xQueueA1VY, &a1_vy, &xHigherPriorityTaskWoken);
+}
+
+static void AFEC_a2vx_callback(void) {
+
+	uint32_t a2_vx;
+	a2_vx = afec_channel_get_value(AFEC_VX2, AFEC_VX2_CHANNEL);
+	BaseType_t xHigherPriorityTaskWoken = pdTRUE;
+	xQueueSendFromISR(xQueueA2VX, &a2_vx, &xHigherPriorityTaskWoken);
+}
+
+static void AFEC_a2vy_callback(void) {
+
+	uint32_t a2_vy;
+	a2_vy = afec_channel_get_value(AFEC_VY2, AFEC_VY2_CHANNEL);
+	BaseType_t xHigherPriorityTaskWoken = pdTRUE;
+	xQueueSendFromISR(xQueueA2VY, &a2_vy, &xHigherPriorityTaskWoken);
 }
 
 /************************************************************************/
@@ -174,6 +173,11 @@ static void AFEC_a1vy_callback(void) {
 /************************************************************************/
 
 void io_init(void) {
+    config_AFEC_pot(AFEC_VX1);
+    //config_AFEC_pot(AFEC_VY1);
+	
+	config_AFEC_pot(AFEC_VX2);
+	//config_AFEC_pot(AFEC_VY2);
 }
 
 static void configure_console(void) {
@@ -265,26 +269,8 @@ int hc05_init(void) {
     usart_send_command(USART_COM, buffer_rx, 1000, "AT+PIN0000", 100);
 }
 
-static void config_AFEC_pot(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
-                            afec_callback_t callback) {
-    /*************************************
-     * Ativa e configura AFEC
-     *************************************/
-    /* Ativa AFEC - 0 */
-    afec_enable(afec);
-
-    /* struct de configuracao do AFEC */
-    struct afec_config afec_cfg;
-
-    /* Carrega parametros padrao */
-    afec_get_config_defaults(&afec_cfg);
-
-    /* Configura AFEC */
-    afec_init(afec, &afec_cfg);
-
-    /* Configura trigger por software */
-    afec_set_trigger(afec, AFEC_TRIG_SW);
-
+static void config_AFEC_channel(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
+                                afec_callback_t callback) {
     /*** Configuracao específica do canal AFEC ***/
     struct afec_ch_config afec_ch_cfg;
     afec_ch_get_config_defaults(&afec_ch_cfg);
@@ -310,6 +296,26 @@ static void config_AFEC_pot(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
     NVIC_EnableIRQ(afec_id);
 }
 
+static void config_AFEC_pot(Afec *afec) {
+    /*************************************
+     * Ativa e configura AFEC
+     *************************************/
+    /* Ativa AFEC - 0 */
+    afec_enable(afec);
+
+    /* struct de configuracao do AFEC */
+    struct afec_config afec_cfg;
+
+    /* Carrega parametros padrao */
+    afec_get_config_defaults(&afec_cfg);
+
+    /* Configura AFEC */
+    afec_init(afec, &afec_cfg);
+
+    /* Configura trigger por software */
+    afec_set_trigger(afec, AFEC_TRIG_SW);
+}
+
 /************************************************************************/
 /* TASKS                                                                */
 /************************************************************************/
@@ -323,24 +329,98 @@ void task_bluetooth(void) {
 
     // configura LEDs e Botões
     io_init();
-
-    char button1 = '0';
+    /* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
+    char infos[] = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
     char eof = 'X';
 
     // Task não deve retornar.
     for (;;) {
         // atualiza valor do botão
- /*       if (pio_get(BUT_PIO, PIO_INPUT, BUT_IDX_MASK) == 0) {
+
+        /* if (pio_get(BUT_PIO, PIO_INPUT, BUT_IDX_MASK) == 0) {
             button1 = '1';
         } else {
             button1 = '0';
         }
-*/
-        // envia status botão
-        while (!usart_is_tx_ready(USART_COM)) {
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+
+        /* analogico da direita idx = 5*/
+        int32_t estado_ana_x_axis,estado_ana_y_axis;
+        while (xQueueReceive(xQueueA1VXdigital, &estado_ana_x_axis, 100)) {
+			
+            if (estado_ana_x_axis == 1) {
+				/* direita */
+                infos[5] = '1';
+                infos[7] = '0';
+            } else if (estado_ana_x_axis == 0) {
+				/* esquerda */
+                infos[5] = '0';
+                infos[7] = '1';
+            } else {
+				/* parado */
+                infos[5] = '0';
+                infos[7] = '0';
+            }
         }
-        usart_write(USART_COM, button1);
+		
+		while (xQueueReceive(xQueueA1VYdigital, &estado_ana_y_axis, 100)) {
+			if (estado_ana_y_axis == 1) {
+				/* BAIXO */
+				infos[4] = '1';
+				infos[6] = '0';
+			} else if (estado_ana_y_axis == 0) {
+				/* CIMA */
+				infos[4] = '0';
+				infos[6] = '1';	
+			} else {
+				/* parado */
+				infos[4] = '0';
+				infos[6] = '0';
+			}
+		}
+		
+		/* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
+		int32_t estado_ana_x2_axis, estado_ana_y2_axis;
+		while (xQueueReceive(xQueueA2VXdigital, &estado_ana_x2_axis, 100)) {
+			        
+			if (estado_ana_x2_axis == 1) {
+				/* A */
+				infos[1] = '1';
+				infos[3] = '0';
+			} else if (estado_ana_x2_axis == 0) {
+				/* Y */
+				infos[1] = '0';
+				infos[3] = '1';
+			} else {
+				/* NADA */
+				infos[1] = '0';
+				infos[3] = '0';
+			}
+		}
+		        
+		while (xQueueReceive(xQueueA2VYdigital, &estado_ana_y2_axis, 100)) {
+			if (estado_ana_y2_axis == 1) {
+				/* b */
+				infos[0] = '1';
+				infos[2] = '0';
+			} else if (estado_ana_y2_axis == 0) {
+				/* x */
+				infos[0] = '0';
+				infos[2] = '1';
+			} else {
+				/* nada */
+				infos[0] = '0';
+				infos[2] = '0';
+			}
+		}
+
+        for (int i = 0; i < 9; i++) {
+            // envia status botão
+            while (!usart_is_tx_ready(USART_COM)) {
+                vTaskDelay(10 / portTICK_PERIOD_MS);
+            }
+
+            usart_write(USART_COM, infos[i]);
+        }
 
         // envia fim de pacote
         while (!usart_is_tx_ready(USART_COM)) {
@@ -349,78 +429,170 @@ void task_bluetooth(void) {
         usart_write(USART_COM, eof);
 
         // dorme por 500 ms
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(250 / portTICK_PERIOD_MS);
     }
+}
+
+void xTimerA1VXCallback(TimerHandle_t xTimerA1VX) {
+    /* Selecina canal e inicializa conversão */
+    afec_channel_enable(AFEC_VX1, AFEC_VX1_CHANNEL);
+	afec_channel_enable(AFEC_VX2, AFEC_VX2_CHANNEL);
+	
+    afec_start_software_conversion(AFEC_VX1);
+	afec_start_software_conversion(AFEC_VX2);
+}
+
+void xTimerA1VYCallback(TimerHandle_t xTimerA1VY) {
+    /* Selecina canal e inicializa conversão */
+	
+    afec_channel_enable(AFEC_VY1, AFEC_VY1_CHANNEL);
+	afec_channel_enable(AFEC_VY2, AFEC_VY2_CHANNEL);
+	
+	afec_start_software_conversion(AFEC_VY1);
+	afec_start_software_conversion(AFEC_VY2);
 }
 
 void task_a1vx(void){
 
-    /* configurar adc e tc para controlar a leitura */
-    config_AFEC_pot(AFEC_VX, AFEC_VX_ID, AFEC_VX_CHANNEL, AFEC_a1vx_callback);
-    // afec_enable_interrupt(AFEC_VX, AFEC_INTERRUPT_EOC_0);
+    config_AFEC_channel(AFEC_VX1, AFEC_VX1_ID, AFEC_VX1_CHANNEL, AFEC_a1vx_callback);
+
+    xTimerA1VX = xTimerCreate(/* Just a text name, not used by the RTOS
+                          kernel. */
+                          "Timer",
+                          /* The timer period in ticks, must be
+                          greater than 0. */
+                          400,
+                          /* The timers will auto-reload themselves
+                          when they expire. */
+                          pdTRUE,
+                          /* The ID is used to store a count of the
+                          number of times the timer has expired, which
+                          is initialised to 0. */
+                          (void *)0,
+                          /* Timer callback */
+                          xTimerA1VXCallback);
+						  
+	xTimerStart(xTimerA1VX, 0);
 
     uint32_t a1vx;
     BaseType_t xHigherPriorityTaskWoken = pdTRUE;
+    int32_t estado; /* se 1, para direita, se 0 para esquerda */
 
     for(;;){
 
-        afec_channel_enable(AFEC_VX, AFEC_VX_CHANNEL);
-        afec_start_software_conversion(AFEC_VX);
-
-        printf("oi\n");
-
-        if (xSemaphoreTake(xSemaphoreLeitura,5)){
-
-            if (xQueueReceive(xQueueA1VX, &a1vx, 10)){
+        if (xQueueReceive(xQueueA1VX, &a1vx, 100)){
 
             uint32_t vx = a1vx;
-            // char estado_vx;
 
-            printf("vx = %d\n",vx);
-
-            // if (vx > 2300){
-            //     estado_vx = 'd';
-            // } else {
-            //     estado_vx = 'e';
-            // }
-
-            // printf("estado vx: %c\n",estado_vx);
-
-            // xQueueSend(xQueueA1VXdigital)
-            // printf("vx = %d\n",vx);
+            if (vx < 2000) {
+                estado = 0;
+            } else if (vx > 2100){
+                estado = 1;
+            } else {
+                estado = -1;
             }
+
+            xQueueSend(xQueueA1VXdigital, &estado, 0);
         }
     }
 }
 
 void task_a1vy(void){
-
-    /* configurar adc e tc para controlar a leitura */
-    config_AFEC_pot(AFEC_VY, AFEC_VY_ID, AFEC_VY_CHANNEL, AFEC_a1vy_callback);
+	
+	config_AFEC_channel(AFEC_VY1, AFEC_VY1_ID, AFEC_VY1_CHANNEL, AFEC_a1vy_callback);
+	
+   xTimerA1VY = xTimerCreate(/* Just a text name, not used by the RTOS
+                          kernel. */
+                          "Timer",
+                          /* The timer period in ticks, must be
+                          greater than 0. */
+                          400,
+                          /* The timers will auto-reload themselves
+                          when they expire. */
+                          pdTRUE,
+                          /* The ID is used to store a count of the
+                          number of times the timer has expired, which
+                          is initialised to 0. */
+                          (void *)0,
+                          /* Timer callback */
+                          xTimerA1VYCallback);
+						  
+	xTimerStart(xTimerA1VY, 0);
 
     uint32_t a1vy;
-    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
+    int32_t estado; /* se 1, para BAIXO, se 0 para CIMA */
 
-    for(;;){
+    for (;;) {
 
-        // afec_channel_enable(AFEC_VY, AFEC_VY_CHANNEL);
-        // afec_start_software_conversion(AFEC_VY);
+        if (xQueueReceive(xQueueA1VY, &a1vy, 100)) {
 
-        // if (xQueueReceive(xQueueA1VY, &a1vy, 100)){
-
-        //     int vy = a1vy;
-        //     // printf("vy = %d\n",vy);
-        // }
-
-        vTaskDelay(5);
+            uint32_t vy = a1vy;
+            
+            if (vy < 2000) {
+                estado = 0;
+            } else if (vy > 2100){
+                estado = 1;
+            } else {
+                estado = -1;
+            }
+            
+            xQueueSend(xQueueA1VYdigital, &estado, 0);
+        }
     }
 }
 
-// void task_a1vx_digital(void){
-// }
+void task_a2vx(void){
 
-// void task_a1vy_digital(void){
-// }
+    config_AFEC_channel(AFEC_VX2, AFEC_VX2_ID, AFEC_VX2_CHANNEL, AFEC_a2vx_callback);
+
+    uint32_t a2vx;
+    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
+    int32_t estado; /* se 1, para direita, se 0 para esquerda */
+
+    for(;;){
+
+        if (xQueueReceive(xQueueA2VX, &a2vx, 100)){
+
+            uint32_t vx = a2vx;
+
+            if (vx < 2000) {
+                estado = 0;
+            } else if (vx > 2100){
+                estado = 1;
+            } else {
+                estado = -1;
+            }
+
+            xQueueSend(xQueueA2VXdigital, &estado, 0);
+        }
+    }
+}
+
+void task_a2vy(void){
+	
+	config_AFEC_channel(AFEC_VY2, AFEC_VY2_ID, AFEC_VY2_CHANNEL, AFEC_a2vy_callback);
+	
+    uint32_t a2vy;
+    int32_t estado; /* se 1, para BAIXO, se 0 para CIMA */
+
+    for (;;) {
+
+        if (xQueueReceive(xQueueA2VY, &a2vy, 100)) {
+
+            uint32_t vy = a2vy;
+            
+            if (vy < 2000) {
+                estado = 0;
+            } else if (vy > 2100){
+                estado = 1;
+            } else {
+                estado = -1;
+            }
+            printf("vy= %d\n",vy);
+            xQueueSend(xQueueA2VYdigital, &estado, 0);
+        }
+    }
+}
 
 /************************************************************************/
 /* main                                                                 */
@@ -430,6 +602,7 @@ int main(void) {
     /* Initialize the SAM system */
     sysclk_init();
     board_init();
+    io_init();
 
     configure_console();
 
@@ -441,24 +614,26 @@ int main(void) {
 
     /* task analogico a1vy*/
     xTaskCreate(task_a1vy, "analogico a1vy", TASK_BLUETOOTH_STACK_SIZE, NULL, TASK_BLUETOOTH_STACK_PRIORITY, NULL);
+	
+	/* task analogico a1vx*/
+	xTaskCreate(task_a2vx, "analogico a2vx", TASK_BLUETOOTH_STACK_SIZE, NULL, TASK_BLUETOOTH_STACK_PRIORITY, NULL);
 
-    // /* task analogico a1vx*/
-    // xTaskCreate(task_a1vx_digital, "analogico a1vx digital", TASK_BLUETOOTH_STACK_SIZE, NULL, TASK_BLUETOOTH_STACK_PRIORITY, NULL);
-
-    // /* task analogico a1vy*/
-    // xTaskCreate(task_a1vy_digital, "analogico a1vy digital", TASK_BLUETOOTH_STACK_SIZE, NULL, TASK_BLUETOOTH_STACK_PRIORITY, NULL);
-
-    RTT_init(5, 1000, RTT_MR_ALMIEN);
-
-    /* criando semaforo */
-    xSemaphoreLeitura = xSemaphoreCreateBinary();
+	/* task analogico a1vy*/
+	xTaskCreate(task_a2vy, "analogico a2vy", TASK_BLUETOOTH_STACK_SIZE, NULL, TASK_BLUETOOTH_STACK_PRIORITY, NULL);
 
     /* fila leitura analogico */
     xQueueA1VX = xQueueCreate(100, sizeof(uint32_t));
     xQueueA1VY = xQueueCreate(100, sizeof(uint32_t));   
     /* fila de tratamento da leitura analogica */
-    // xQueueA1VXdigital = xQueueCreate(100, sizeof(uint32_t));
-    // xQueueA1VYdigital = xQueueCreate(100, sizeof(uint32_t));
+    xQueueA1VXdigital = xQueueCreate(100, sizeof(int32_t));
+    xQueueA1VYdigital = xQueueCreate(100, sizeof(int32_t));
+	
+	/* fila leitura analogico */
+	xQueueA2VX = xQueueCreate(100, sizeof(uint32_t));
+	xQueueA2VY = xQueueCreate(100, sizeof(uint32_t));
+	/* fila de tratamento da leitura analogica */
+	xQueueA2VXdigital = xQueueCreate(100, sizeof(int32_t));
+	xQueueA2VYdigital = xQueueCreate(100, sizeof(int32_t));
 
     if (xQueueA1VX == NULL)
         printf("falha em criar a queue xQueueA1VX \n");
@@ -466,15 +641,23 @@ int main(void) {
     if (xQueueA1VY == NULL)
         printf("falha em criar a queue xQueueA1VY \n");
 
-    // if (xQueueA1VXdigital == NULL)
-    //     printf("falha em criar a queue xQueueA1VX \n");
+    if (xQueueA1VXdigital == NULL)
+        printf("falha em criar a queue xQueueA1VX \n");
 
-    // if (xQueueA1VYdigital == NULL)
-    //     printf("falha em criar a queue xQueueA1VY \n");
-    
-    if (xSemaphoreLeitura == NULL){
-		printf("Failed to create semaphore\n");
-	}
+    if (xQueueA1VYdigital == NULL)
+        printf("falha em criar a queue xQueueA1VY \n");
+		
+	if (xQueueA2VX == NULL)
+		printf("falha em criar a queue xQueueA1VX \n");
+
+	if (xQueueA2VY == NULL)
+		printf("falha em criar a queue xQueueA1VY \n");
+
+	if (xQueueA2VXdigital == NULL)
+		printf("falha em criar a queue xQueueA1VX \n");
+
+	if (xQueueA2VYdigital == NULL)
+		printf("falha em criar a queue xQueueA1VY \n");
 
     /* Start the scheduler. */
     vTaskStartScheduler();
