@@ -28,14 +28,38 @@ class SerialControllerInterface:
         pyautogui.PAUSE = 0  ## remove delay
     
     def update(self):
-        estado = 0
         data = self.ser.read()
-        if data == b'X':
+        # == Checando Analogico
+        estado_analogico = 0
+        if data == b'A':
+            estado_analogico = 1
+        recebido_analogico = []
+        while (estado_analogico):
+            data = self.ser.read()
+            if data == b'A':
+                estado_analogico = 0
+                break
+            recebido_analogico.append(data)
+            logging.debug("Received DATA: {}".format(data))
+
+        if len(recebido_analogico) > 0:
+            if data == b'1':
+                print("datab1")
+                logging.info("KEYDOWN A")
+                pyautogui.keyDown(self.mapping.button['A'])
+            elif data == b'0':
+                print("datab0")
+                logging.info("KEYUP A")
+                pyautogui.keyUp(self.mapping.button['A'])
+
+        # == Checando Botões
+        estado = 0
+        if data == b'B':
             estado = 1
         recebido = []
         while (estado):
             data = self.ser.read()
-            if data == b'X':
+            if data == b'B':
                 estado = 0
                 break
             recebido.append(data)
