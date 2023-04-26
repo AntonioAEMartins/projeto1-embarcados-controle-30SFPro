@@ -22,47 +22,47 @@
 #define LED_IDX_MASK (1 << LED_IDX)
 
 // Botoes
-// Lado Direito
+// B
 #define BUT1_PIO      PIOA
 #define BUT1_PIO_ID   ID_PIOA
 #define BUT1_IDX      13
 #define BUT1_IDX_MASK (1 << BUT1_IDX)
-
+//A
 #define BUT2_PIO      PIOC
 #define BUT2_PIO_ID   ID_PIOC
 #define BUT2_IDX      19
 #define BUT2_IDX_MASK (1 << BUT2_IDX)
-
+//X
 #define BUT3_PIO      PIOA
 #define BUT3_PIO_ID   ID_PIOA
 #define BUT3_IDX      6
 #define BUT3_IDX_MASK (1 << BUT3_IDX)
-
+//Y
 #define BUT4_PIO      PIOD
 #define BUT4_PIO_ID   ID_PIOD
 #define BUT4_IDX      25
 #define BUT4_IDX_MASK (1 << BUT4_IDX)
-// Lado Esquerdo
+// Baixo
 #define BUT5_PIO      PIOD
 #define BUT5_PIO_ID   ID_PIOD
 #define BUT5_IDX      24
 #define BUT5_IDX_MASK (1 << BUT5_IDX)
-
+// Direita
 #define BUT6_PIO      PIOA
 #define BUT6_PIO_ID   ID_PIOA
 #define BUT6_IDX      24
 #define BUT6_IDX_MASK (1 << BUT6_IDX)
-
+// Cima
 #define BUT7_PIO      PIOB
 #define BUT7_PIO_ID   ID_PIOB
 #define BUT7_IDX      3
 #define BUT7_IDX_MASK (1 << BUT7_IDX)
-
+// Esquerda
 #define BUT8_PIO      PIOA
 #define BUT8_PIO_ID   ID_PIOA
 #define BUT8_IDX      9
 #define BUT8_IDX_MASK (1 << BUT8_IDX)
-// Botoes Pause
+// Desliga
 #define BUT9_PIO      PIOA
 #define BUT9_PIO_ID   ID_PIOA
 #define BUT9_IDX      5
@@ -91,6 +91,16 @@ QueueHandle_t xQueueA2VYdigital;
 TimerHandle_t xTimerA1VX;
 TimerHandle_t xTimerA1VY;
 
+volatile int flag0;
+volatile int flag1;
+volatile int flag2;
+volatile int flag3;
+volatile int flag4;
+volatile int flag5;
+volatile int flag6;
+volatile int flag7;
+volatile int flag8;
+
 #define TASK_BLUETOOTH_STACK_SIZE (4096 / sizeof(portSTACK_TYPE))
 #define TASK_BLUETOOTH_STACK_PRIORITY (tskIDLE_PRIORITY)
 
@@ -114,17 +124,6 @@ static void AFEC_a2vx_callback(void);
 static void AFEC_a2vy_callback(void);
 void xTimerA1VXCallback(TimerHandle_t xTimerA1VX);
 void xTimerA1VYCallback(TimerHandle_t xTimerA1VY);
-/************************************************************************/
-/* constants                                                            */
-/************************************************************************/
-
-/************************************************************************/
-/* variaveis globais                                                    */
-/************************************************************************/
-
-/************************************************************************/
-/* RTOS application HOOK                                                */
-/************************************************************************/
 
 /* Called if stack overflow during execution */
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
@@ -394,14 +393,20 @@ void task_bluetooth(void) {
 				/* direita */
                 infos[5] = '1';
                 infos[7] = '0';
+				flag5 = 1;
+				flag7 = 0;
             } else if (estado_ana_x_axis == 0) {
 				/* esquerda */
                 infos[5] = '0';
                 infos[7] = '1';
+				flag5 = 0;
+				flag7 = 1;
             } else {
 				/* parado */
                 infos[5] = '0';
                 infos[7] = '0';
+				flag5 = 0;
+				flag7 = 0;
             }
         }
 		
@@ -410,14 +415,20 @@ void task_bluetooth(void) {
 				/* BAIXO */
 				infos[4] = '1';
 				infos[6] = '0';
+				flag4 = 1;
+				flag6 = 0;
 			} else if (estado_ana_y_axis == 0) {
 				/* CIMA */
 				infos[4] = '0';
 				infos[6] = '1';	
+				flag4 = 0;
+				flag6 = 1;
 			} else {
 				/* parado */
 				infos[4] = '0';
 				infos[6] = '0';
+				flag4 = 0;
+				flag6 = 0;
 			}
 		}
 		
@@ -429,14 +440,20 @@ void task_bluetooth(void) {
 				/* A */
 				infos[1] = '1';
 				infos[3] = '0';
+				flag1 = 1;
+				flag3 = 0;
 			} else if (estado_ana_x2_axis == 0) {
 				/* Y */
 				infos[1] = '0';
 				infos[3] = '1';
+				flag1 = 0;
+				flag3 = 1;
 			} else {
 				/* NADA */
 				infos[1] = '0';
 				infos[3] = '0';
+				flag1 = 0;
+				flag3 = 0;
 			}
 		}
 		        
@@ -445,15 +462,75 @@ void task_bluetooth(void) {
 				/* b */
 				infos[0] = '1';
 				infos[2] = '0';
+				flag0 = 1;
+				flag2 = 0;
 			} else if (estado_ana_y2_axis == 0) {
 				/* x */
 				infos[0] = '0';
 				infos[2] = '1';
+				flag0 = 0;
+				flag2 = 1;
 			} else {
 				/* nada */
 				infos[0] = '0';
 				infos[2] = '0';
+				flag0 = 0;
+				flag2 = 0;
 			}
+		}
+		
+		
+		
+		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
+			infos[0] = '1';
+			} else if (!flag0) {
+			infos[0] = '0';
+		}
+		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
+			infos[1] = '1';
+			} else if (!flag1) {
+			infos[1] = '0';
+		}
+		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
+			infos[2] = '1';
+			} else if (!flag2){
+			infos[2] = '0';
+		}
+		
+		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
+			infos[3] = '1';
+			} else if (!flag3){
+			infos[3] = '0';
+		}
+		
+		if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
+			infos[4] = '1';
+			} else if (!flag4){
+			infos[4] = '0';
+		}
+		
+		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
+			infos[5] = '1';
+			} else if (!flag5){
+			infos[5] = '0';
+		}
+		
+		if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
+			infos[6] = '1';
+			} else if (!flag6){
+			infos[6] = '0';
+		}
+		
+		if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
+			infos[7] = '1';
+			} else if (!flag7){
+			infos[7] = '0';
+		}
+		
+		if(pio_get(BUT9_PIO, PIO_INPUT, BUT9_IDX_MASK) == 0) {
+			infos[8] = '1';
+			} else if (!flag8){
+			infos[8] = '0';
 		}
 		
 		printf("A");
@@ -461,65 +538,14 @@ void task_bluetooth(void) {
 			printf("%c", infos[i]);
 		}
 		printf("A");
-		
-		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
-			buttons[0] = '1';
-			} else {
-			buttons[0] = '0';
-		}
-		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
-			buttons[1] = '1';
-			} else {
-			buttons[1] = '0';
-		}
-		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
-			buttons[2] = '1';
-			} else {
-			buttons[2] = '0';
-		}
-		
-		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
-			buttons[3] = '1';
-			} else {
-			buttons[3] = '0';
-		}
-		
-		if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
-			buttons[4] = '1';
-			} else {
-			buttons[4] = '0';
-		}
-		
-		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
-			buttons[5] = '1';
-			} else {
-			buttons[5] = '0';
-		}
-		
-		if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
-			buttons[6] = '1';
-			} else {
-			buttons[6] = '0';
-		}
-		
-		if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
-			buttons[7] = '1';
-			} else {
-			buttons[7] = '0';
-		}
-		
-		if(pio_get(BUT9_PIO, PIO_INPUT, BUT9_IDX_MASK) == 0) {
-			buttons[8] = '1';
-			} else {
-			buttons[8] = '0';
-		}
-
-		printf("B");
-		for (int i = 0; i < 9; i++){
-			printf("%c", buttons[i]);
-		}
-		printf("B");
 		printf("\n");
+
+// 		printf("B");
+// 		for (int i = 0; i < 9; i++){
+// 			printf("%c", buttons[i]);
+// 		}
+// 		printf("B");
+// 		printf("\n");
 		printf("%c", eof);
         // dorme por 500 ms
         vTaskDelay(250 / portTICK_PERIOD_MS);
