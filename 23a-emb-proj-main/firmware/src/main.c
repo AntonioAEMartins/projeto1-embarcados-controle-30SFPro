@@ -1,90 +1,72 @@
-/************************************************************************
- * 5 semestre - Eng. da Computao - Insper
- *
- * 2021 - Exemplo com HC05 com RTOS
- *
- */
-
 #include "conf_board.h"
 #include <asf.h>
 #include <string.h>
 
-/************************************************************************/
-/* defines                                                              */
-/************************************************************************/
 
-// analogico
 #define AFEC_VX1 AFEC0
 #define AFEC_VX1_ID ID_AFEC0
 #define AFEC_VX1_CHANNEL 0 // Canal do pino PD30
-
-// Botoes
-	// Lado Direito
-#define BUT1_PIO      PIOA
-#define BUT1_PIO_ID   ID_PIOA
-#define BUT1_IDX      13
-#define BUT1_IDX_MASK (1 << BUT1_IDX)
-
-#define BUT2_PIO      PIOC
-#define BUT2_PIO_ID   ID_PIOC
-#define BUT2_IDX      19
-#define BUT2_IDX_MASK (1 << BUT2_IDX)
-
-#define BUT3_PIO      PIOA
-#define BUT3_PIO_ID   ID_PIOA
-#define BUT3_IDX      6
-#define BUT3_IDX_MASK (1 << BUT3_IDX)
-
-#define BUT4_PIO      PIOD
-#define BUT4_PIO_ID   ID_PIOD
-#define BUT4_IDX      25
-#define BUT4_IDX_MASK (1 << BUT4_IDX)
-	// Lado Esquerdo
-#define BUT5_PIO      PIOD
-#define BUT5_PIO_ID   ID_PIOD
-#define BUT5_IDX      24
-#define BUT5_IDX_MASK (1 << BUT5_IDX)
-
-#define BUT6_PIO      PIOA
-#define BUT6_PIO_ID   ID_PIOA
-#define BUT6_IDX      24
-#define BUT6_IDX_MASK (1 << BUT6_IDX)
-
-#define BUT7_PIO      PIOB
-#define BUT7_PIO_ID   ID_PIOB
-#define BUT7_IDX      3
-#define BUT7_IDX_MASK (1 << BUT7_IDX)
-
-#define BUT8_PIO      PIOA
-#define BUT8_PIO_ID   ID_PIOA
-#define BUT8_IDX      9
-#define BUT8_IDX_MASK (1 << BUT8_IDX)
-	// Botoes Pause 
-#define BUT9_PIO      PIOA
-#define BUT9_PIO_ID   ID_PIOA
-#define BUT9_IDX      5
-#define BUT9_IDX_MASK (1 << BUT9_IDX)
 #define AFEC_VY1 AFEC0
 #define AFEC_VY1_ID ID_AFEC0
 #define AFEC_VY1_CHANNEL 5 // Canal do pino PB2
-
 #define AFEC_VX2 AFEC1
 #define AFEC_VX2_ID ID_AFEC1
 #define AFEC_VX2_CHANNEL 1 // Canal do pino Pc13
-
 #define AFEC_VY2 AFEC1
 #define AFEC_VY2_ID ID_AFEC1
 #define AFEC_VY2_CHANNEL 6 // Canal do pino Pc31
 
-/* 
-MAIS PINOS PARA USAR ANALOGICO 
-AFEC1 Canal 1 PC13
-AFEC1 Canal 1 pc31
-*/
+#define LED_PIO      PIOC
+#define LED_PIO_ID   ID_PIOC
+#define LED_IDX      8
+#define LED_IDX_MASK (1 << LED_IDX)
 
-// usart (bluetooth ou serial)
-// Descomente para enviar dados
-// pela serial debug
+// Botoes
+// B
+#define BUT1_PIO      PIOA
+#define BUT1_PIO_ID   ID_PIOA
+#define BUT1_IDX      13
+#define BUT1_IDX_MASK (1 << BUT1_IDX)
+//A
+#define BUT2_PIO      PIOC
+#define BUT2_PIO_ID   ID_PIOC
+#define BUT2_IDX      19
+#define BUT2_IDX_MASK (1 << BUT2_IDX)
+//X
+#define BUT3_PIO      PIOA
+#define BUT3_PIO_ID   ID_PIOA
+#define BUT3_IDX      6
+#define BUT3_IDX_MASK (1 << BUT3_IDX)
+//Y
+#define BUT4_PIO      PIOD
+#define BUT4_PIO_ID   ID_PIOD
+#define BUT4_IDX      25
+#define BUT4_IDX_MASK (1 << BUT4_IDX)
+// Baixo
+#define BUT5_PIO      PIOD
+#define BUT5_PIO_ID   ID_PIOD
+#define BUT5_IDX      24
+#define BUT5_IDX_MASK (1 << BUT5_IDX)
+// Direita
+#define BUT6_PIO      PIOA
+#define BUT6_PIO_ID   ID_PIOA
+#define BUT6_IDX      24
+#define BUT6_IDX_MASK (1 << BUT6_IDX)
+// Cima
+#define BUT7_PIO      PIOB
+#define BUT7_PIO_ID   ID_PIOB
+#define BUT7_IDX      3
+#define BUT7_IDX_MASK (1 << BUT7_IDX)
+// Esquerda
+#define BUT8_PIO      PIOA
+#define BUT8_PIO_ID   ID_PIOA
+#define BUT8_IDX      9
+#define BUT8_IDX_MASK (1 << BUT8_IDX)
+// Desliga
+#define BUT9_PIO      PIOA
+#define BUT9_PIO_ID   ID_PIOA
+#define BUT9_IDX      5
+#define BUT9_IDX_MASK (1 << BUT9_IDX)
 
 #define DEBUG_SERIAL
 
@@ -96,9 +78,6 @@ AFEC1 Canal 1 pc31
 #define USART_COM_ID ID_USART0
 #endif
 
-
-/************************************************************************/
-/* FILA DO ADC */
 QueueHandle_t xQueueA1VX;
 QueueHandle_t xQueueA1VY;
 QueueHandle_t xQueueA1VXdigital;
@@ -112,10 +91,22 @@ QueueHandle_t xQueueA2VYdigital;
 TimerHandle_t xTimerA1VX;
 TimerHandle_t xTimerA1VY;
 
+volatile int flag0;
+volatile int flag1;
+volatile int flag2;
+volatile int flag3;
+volatile int flag4;
+volatile int flag5;
+volatile int flag6;
+volatile int flag7;
+volatile int flag8;
+
 #define TASK_BLUETOOTH_STACK_SIZE (4096 / sizeof(portSTACK_TYPE))
 #define TASK_BLUETOOTH_STACK_PRIORITY (tskIDLE_PRIORITY)
 
-
+/************************************************************************/
+/* prototypes                                                           */
+/************************************************************************/
 
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
                                           signed char *pcTaskName);
@@ -123,7 +114,6 @@ extern void vApplicationIdleHook(void);
 extern void vApplicationTickHook(void);
 extern void vApplicationMallocFailedHook(void);
 extern void xPortSysTickHandler(void);
-
 static void config_AFEC_pot(Afec *afec);
 static void config_AFEC_channel(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
                                 afec_callback_t callback);
@@ -138,7 +128,7 @@ void xTimerA1VYCallback(TimerHandle_t xTimerA1VY);
 /* Called if stack overflow during execution */
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
                                           signed char *pcTaskName) {
-    printf("stack overflow %x %s\r\n", pxTask, (portCHAR *)pcTaskName);
+    //printf("stack overflow %x %s\r\n", pxTask, (portCHAR *)pcTaskName);
     /* If the parameters have been corrupted then inspect pxCurrentTCB to
      * identify which task has overflowed its stack.
      */
@@ -165,8 +155,7 @@ extern void vApplicationMallocFailedHook(void) {
     configASSERT((volatile void *)NULL);
 }
 
-
-void io_init(void) {
+void but_init(void) {
 
 	// Ativa PIOs
 	pmc_enable_periph_clk(LED_PIO_ID);
@@ -189,6 +178,11 @@ void io_init(void) {
 	pio_configure(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK, PIO_PULLUP);
 	pio_configure(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK, PIO_PULLUP);
 	pio_configure(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK, PIO_PULLUP);
+}
+
+/************************************************************************/
+/* handlers / callbacks                                                 */
+/************************************************************************/
 
 static void AFEC_a1vx_callback(void) {
 
@@ -221,6 +215,10 @@ static void AFEC_a2vy_callback(void) {
 	BaseType_t xHigherPriorityTaskWoken = pdTRUE;
 	xQueueSendFromISR(xQueueA2VY, &a2_vy, &xHigherPriorityTaskWoken);
 }
+
+/************************************************************************/
+/* funcoes                                                              */
+/************************************************************************/
 
 void io_init(void) {
     config_AFEC_pot(AFEC_VX1);
@@ -372,71 +370,22 @@ static void config_AFEC_pot(Afec *afec) {
 
 void task_bluetooth(void) {
     //printf("Task Bluetooth started \n");
-    printf("Inicializando HC05 \n");
+
+    //printf("Inicializando HC05 \n");
     config_usart0();
     hc05_init();
+
+    // configura LEDs e Botões
+    io_init();
     /* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
     char infos[] = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
-    char buttons[10] = "000000000";
+	char buttons[10] = "000000000";
     char eof = 'X';
+	
+	printf("%c", eof);
 
-	printf("%c",eof);
-
-	while(1) {
-		// Rotina de Checagem dos Botoes
-		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
-			buttons[0] = '1';
- 		} else {
-			 buttons[0] = '0';
-		}
-		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
-			buttons[1] = '1';
-		} else {
-			buttons[1] = '0';
-		}
-		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
-			buttons[2] = '1';
-		} else {
-			buttons[2] = '0';
-		}
-		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
-			buttons[3] = '1';
-		} else {
-			buttons[3] = '0';
-		}
-		if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
-			buttons[4] = '1';
-		} else {
-			buttons[4] = '0';
-		}
-		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
-			buttons[5] = '1';
-		} else {
-			buttons[5] = '0';
-		}
-		if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
-			buttons[6] = '1';
-		} else {
-			buttons[6] = '0';
-		}
-		if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
-			buttons[7] = '1';
-		} else {
-			buttons[7] = '0';
-		}
-		if(pio_get(BUT9_PIO, PIO_INPUT, BUT9_IDX_MASK) == 0) {
-			buttons[8] = '1';
-			} else {
-			buttons[8] = '0';
-		}
-
-		printf("B"); // Inicio do Envio dos Dados | Buttons
-		for (int i = 0; i < 9; i++){
-			printf("%c", buttons[i]);
-		}
-		printf("B"); // Fim do Envio dos Dados | Buttons
-
-        // Rotina de Checagem dos Analogicos
+    // Task não deve retornar.
+    for (;;) {
         int32_t estado_ana_x_axis,estado_ana_y_axis;
         while (xQueueReceive(xQueueA1VXdigital, &estado_ana_x_axis, 100)) {
 			
@@ -444,34 +393,46 @@ void task_bluetooth(void) {
 				/* direita */
                 infos[5] = '1';
                 infos[7] = '0';
+				flag5 = 1;
+				flag7 = 0;
             } else if (estado_ana_x_axis == 0) {
 				/* esquerda */
                 infos[5] = '0';
                 infos[7] = '1';
+				flag5 = 0;
+				flag7 = 1;
             } else {
 				/* parado */
                 infos[5] = '0';
                 infos[7] = '0';
+				flag5 = 0;
+				flag7 = 0;
             }
         }
-
-        while (xQueueReceive(xQueueA1VYdigital, &estado_ana_y_axis, 100)) {
+		
+		while (xQueueReceive(xQueueA1VYdigital, &estado_ana_y_axis, 100)) {
 			if (estado_ana_y_axis == 1) {
 				/* BAIXO */
 				infos[4] = '1';
 				infos[6] = '0';
+				flag4 = 1;
+				flag6 = 0;
 			} else if (estado_ana_y_axis == 0) {
 				/* CIMA */
 				infos[4] = '0';
 				infos[6] = '1';	
+				flag4 = 0;
+				flag6 = 1;
 			} else {
 				/* parado */
 				infos[4] = '0';
 				infos[6] = '0';
+				flag4 = 0;
+				flag6 = 0;
 			}
 		}
-
-        /* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
+		
+		/* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
 		int32_t estado_ana_x2_axis, estado_ana_y2_axis;
 		while (xQueueReceive(xQueueA2VXdigital, &estado_ana_x2_axis, 100)) {
 			        
@@ -479,41 +440,116 @@ void task_bluetooth(void) {
 				/* A */
 				infos[1] = '1';
 				infos[3] = '0';
+				flag1 = 1;
+				flag3 = 0;
 			} else if (estado_ana_x2_axis == 0) {
 				/* Y */
 				infos[1] = '0';
 				infos[3] = '1';
+				flag1 = 0;
+				flag3 = 1;
 			} else {
 				/* NADA */
 				infos[1] = '0';
 				infos[3] = '0';
+				flag1 = 0;
+				flag3 = 0;
 			}
 		}
-
-        while (xQueueReceive(xQueueA2VYdigital, &estado_ana_y2_axis, 100)) {
+		        
+		while (xQueueReceive(xQueueA2VYdigital, &estado_ana_y2_axis, 100)) {
 			if (estado_ana_y2_axis == 1) {
 				/* b */
 				infos[0] = '1';
 				infos[2] = '0';
+				flag0 = 1;
+				flag2 = 0;
 			} else if (estado_ana_y2_axis == 0) {
 				/* x */
 				infos[0] = '0';
 				infos[2] = '1';
+				flag0 = 0;
+				flag2 = 1;
 			} else {
 				/* nada */
 				infos[0] = '0';
 				infos[2] = '0';
+				flag0 = 0;
+				flag2 = 0;
 			}
 		}
-
-        printf("A"); // Inicio do Envio dos Dados | Analogico
+		
+		
+		
+		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
+			infos[0] = '1';
+			} else if (!flag0) {
+			infos[0] = '0';
+		}
+		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
+			infos[1] = '1';
+			} else if (!flag1) {
+			infos[1] = '0';
+		}
+		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
+			infos[2] = '1';
+			} else if (!flag2){
+			infos[2] = '0';
+		}
+		
+		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
+			infos[3] = '1';
+			} else if (!flag3){
+			infos[3] = '0';
+		}
+		
+		if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
+			infos[4] = '1';
+			} else if (!flag4){
+			infos[4] = '0';
+		}
+		
+		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
+			infos[5] = '1';
+			} else if (!flag5){
+			infos[5] = '0';
+		}
+		
+		if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
+			infos[6] = '1';
+			} else if (!flag6){
+			infos[6] = '0';
+		}
+		
+		if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
+			infos[7] = '1';
+			} else if (!flag7){
+			infos[7] = '0';
+		}
+		
+		if(pio_get(BUT9_PIO, PIO_INPUT, BUT9_IDX_MASK) == 0) {
+			infos[8] = '1';
+			} else if (!flag8){
+			infos[8] = '0';
+		}
+		
+		printf("A");
 		for (int i = 0; i < 9; i++){
 			printf("%c", infos[i]);
 		}
-		printf("A"); // Fim do Envio dos Dados | Analogico
+		printf("A");
+		printf("\n");
 
-        vTaskDelay(5 / portTICK_PERIOD_MS);
-	}
+// 		printf("B");
+// 		for (int i = 0; i < 9; i++){
+// 			printf("%c", buttons[i]);
+// 		}
+// 		printf("B");
+// 		printf("\n");
+		printf("%c", eof);
+        // dorme por 500 ms
+        vTaskDelay(250 / portTICK_PERIOD_MS);
+    }
 }
 
 void xTimerA1VXCallback(TimerHandle_t xTimerA1VX) {
@@ -567,9 +603,9 @@ void task_a1vx(void){
 
             uint32_t vx = a1vx;
 
-            if (vx < 2000) {
+            if (vx < 3000) {
                 estado = 0;
-            } else if (vx > 2100){
+            } else if (vx > 3300){
                 estado = 1;
             } else {
                 estado = -1;
@@ -611,9 +647,9 @@ void task_a1vy(void){
 
             uint32_t vy = a1vy;
             
-            if (vy < 2000) {
+            if (vy < 3000) {
                 estado = 0;
-            } else if (vy > 2100){
+            } else if (vy > 3300){
                 estado = 1;
             } else {
                 estado = -1;
@@ -638,9 +674,9 @@ void task_a2vx(void){
 
             uint32_t vx = a2vx;
 
-            if (vx < 2000) {
+            if (vx < 3000) {
                 estado = 0;
-            } else if (vx > 2100){
+            } else if (vx > 3300){
                 estado = 1;
             } else {
                 estado = -1;
@@ -664,24 +700,29 @@ void task_a2vy(void){
 
             uint32_t vy = a2vy;
             
-            if (vy < 2000) {
+            if (vy < 3000) {
                 estado = 0;
-            } else if (vy > 2100){
+            } else if (vy > 3300){
                 estado = 1;
             } else {
                 estado = -1;
             }
-            printf("vy= %d\n",vy);
+            //printf("vy= %d\n",vy);
             xQueueSend(xQueueA2VYdigital, &estado, 0);
         }
     }
 }
+
+/************************************************************************/
+/* main                                                                 */
+/************************************************************************/
 
 int main(void) {
     /* Initialize the SAM system */
     sysclk_init();
     board_init();
     io_init();
+	but_init();
 
     configure_console();
 
