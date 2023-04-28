@@ -387,7 +387,7 @@ void task_bluetooth(void) {
     // Task não deve retornar.
     for (;;) {
         int32_t estado_ana_x_axis,estado_ana_y_axis;
-        while (xQueueReceive(xQueueA1VXdigital, &estado_ana_x_axis, 100)) {
+        while (xQueueReceive(xQueueA1VXdigital, &estado_ana_x_axis, 1)) {
 			
             if (estado_ana_x_axis == 1) {
 				/* direita */
@@ -410,7 +410,7 @@ void task_bluetooth(void) {
             }
         }
 		
-		while (xQueueReceive(xQueueA1VYdigital, &estado_ana_y_axis, 100)) {
+		while (xQueueReceive(xQueueA1VYdigital, &estado_ana_y_axis, 1)) {
 			if (estado_ana_y_axis == 1) {
 				/* BAIXO */
 				infos[4] = '1';
@@ -434,7 +434,7 @@ void task_bluetooth(void) {
 		
 		/* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
 		int32_t estado_ana_x2_axis, estado_ana_y2_axis;
-		while (xQueueReceive(xQueueA2VXdigital, &estado_ana_x2_axis, 100)) {
+		while (xQueueReceive(xQueueA2VXdigital, &estado_ana_x2_axis, 1)) {
 			        
 			if (estado_ana_x2_axis == 1) {
 				/* A */
@@ -457,7 +457,7 @@ void task_bluetooth(void) {
 			}
 		}
 		        
-		while (xQueueReceive(xQueueA2VYdigital, &estado_ana_y2_axis, 100)) {
+		while (xQueueReceive(xQueueA2VYdigital, &estado_ana_y2_axis, 1)) {
 			if (estado_ana_y2_axis == 1) {
 				/* b */
 				infos[0] = '1';
@@ -508,7 +508,6 @@ void task_bluetooth(void) {
 			} else if (!flag4){
 			infos[4] = '0';
 		}
-		
 		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
 			infos[5] = '1';
 			} else if (!flag5){
@@ -548,7 +547,7 @@ void task_bluetooth(void) {
 // 		printf("\n");
 		printf("%c", eof);
         // dorme por 500 ms
-        vTaskDelay(250 / portTICK_PERIOD_MS);
+        vTaskDelay(3 / portTICK_PERIOD_MS);
     }
 }
 
@@ -580,7 +579,7 @@ void task_a1vx(void){
                           "Timer",
                           /* The timer period in ticks, must be
                           greater than 0. */
-                          400,
+                          125,
                           /* The timers will auto-reload themselves
                           when they expire. */
                           pdTRUE,
@@ -599,10 +598,10 @@ void task_a1vx(void){
 
     for(;;){
 
-        if (xQueueReceive(xQueueA1VX, &a1vx, 100)){
+        if (xQueueReceive(xQueueA1VX, &a1vx, 1)){
 
             uint32_t vx = a1vx;
-
+			//printf("VX:%d\n", a1vx);
             if (vx < 3000) {
                 estado = 0;
             } else if (vx > 3300){
@@ -625,7 +624,7 @@ void task_a1vy(void){
                           "Timer",
                           /* The timer period in ticks, must be
                           greater than 0. */
-                          400,
+                          125,
                           /* The timers will auto-reload themselves
                           when they expire. */
                           pdTRUE,
@@ -643,7 +642,7 @@ void task_a1vy(void){
 
     for (;;) {
 
-        if (xQueueReceive(xQueueA1VY, &a1vy, 100)) {
+        if (xQueueReceive(xQueueA1VY, &a1vy, 1)) {
 
             uint32_t vy = a1vy;
             
@@ -670,7 +669,7 @@ void task_a2vx(void){
 
     for(;;){
 
-        if (xQueueReceive(xQueueA2VX, &a2vx, 100)){
+        if (xQueueReceive(xQueueA2VX, &a2vx, 1)){
 
             uint32_t vx = a2vx;
 
@@ -696,7 +695,7 @@ void task_a2vy(void){
 
     for (;;) {
 
-        if (xQueueReceive(xQueueA2VY, &a2vy, 100)) {
+        if (xQueueReceive(xQueueA2VY, &a2vy, 1)) {
 
             uint32_t vy = a2vy;
             
