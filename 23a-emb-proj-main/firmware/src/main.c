@@ -579,7 +579,7 @@ void task_a1vx(void){
                           "Timer",
                           /* The timer period in ticks, must be
                           greater than 0. */
-                          125,
+                          105,
                           /* The timers will auto-reload themselves
                           when they expire. */
                           pdTRUE,
@@ -624,7 +624,7 @@ void task_a1vy(void){
                           "Timer",
                           /* The timer period in ticks, must be
                           greater than 0. */
-                          125,
+                          105,
                           /* The timers will auto-reload themselves
                           when they expire. */
                           pdTRUE,
