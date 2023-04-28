@@ -10,11 +10,11 @@ class MyControllerMap:
                         'B2':'A',
                         'B3':'X',
                         'B4':'Y',
-                        'B5': 'down',
-                        'B6':'left',
-                        'B7':'up',
-                        'B8':'right',
-                        'Pause':'pause'} # Fast forward (10 seg) pro Youtube
+                        'B5': 'left',
+                        'B6':'down',
+                        'B7':'right',
+                        'B8':'up',
+                        'B9':'pause'} # Fast forward (10 seg) pro Youtube
 
 class SerialControllerInterface:
     # Protocolo
@@ -44,46 +44,70 @@ class SerialControllerInterface:
 
         if len(recebido) > 0:
             #Buttons Detection
+
             if recebido[0] == b'1':
                 print("datab1")
                 logging.info("B")
                 pyautogui.keyDown(self.mapping.button['B1'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B1'])
+
             if recebido[1] == b'1':
                 print("datab2")
                 logging.info("A")
                 pyautogui.keyDown(self.mapping.button['B2'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B2'])
+
             if recebido[2] == b'1':
                 print("datab3")
                 logging.info("X")
                 pyautogui.keyDown(self.mapping.button['B3'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B3'])
+
             if recebido[3] == b'1':
                 print("datab4")
                 logging.info("Y")
                 pyautogui.keyDown(self.mapping.button['B4'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B4'])
+
             if recebido[4] == b'1':
                 print("datab5")
                 logging.info("Baixo")
                 pyautogui.keyDown(self.mapping.button['B5'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B5'])
+                
             if recebido[5] == b'1':
                 print("datab6")
                 logging.info("Direita")
                 pyautogui.keyDown(self.mapping.button['B6'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B6'])
+
             if recebido[6] == b'1':
                 print("datab7")
                 logging.info("Cima")
                 pyautogui.keyDown(self.mapping.button['B7'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B7'])
+
             if recebido[7] == b'1':
                 print("datab8")
                 logging.info("Esquerda")
                 pyautogui.keyDown(self.mapping.button['B8'])
+            else:
+                pyautogui.keyUp(self.mapping.button['B8'])
+
             if recebido[8] == b'1':
                 print("pause")
                 logging.info("Desliga")
                 pyautogui.keyDown(self.mapping.button['B9'])
-
-        # elif data == b'0':
-        #     print("datab0")
-        #     logging.info("KEYUP A")
+            else:
+                pyautogui.keyUp(self.mapping.button['B9'])
+            
 
         self.incoming = self.ser.read()
 
