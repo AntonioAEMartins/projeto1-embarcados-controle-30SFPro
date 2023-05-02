@@ -68,7 +68,7 @@
 #define BUT9_IDX      5
 #define BUT9_IDX_MASK (1 << BUT9_IDX)
 
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
 
 #ifdef DEBUG_SERIAL
 #define USART_COM USART1
@@ -382,7 +382,7 @@ void task_bluetooth(void) {
 	char buttons[10] = "000000000";
     char eof = 'X';
 	
-	printf("%c", eof);
+	//printf("%c", eof);
 
     // Task não deve retornar.
     for (;;) {
@@ -532,12 +532,29 @@ void task_bluetooth(void) {
 			infos[8] = '0';
 		}
 		
-		printf("A");
-		for (int i = 0; i < 9; i++){
-			printf("%c", infos[i]);
+		// envia status botão
+		while(!usart_is_tx_ready(USART_COM)) {
+			vTaskDelay(10 / portTICK_PERIOD_MS);
 		}
-		printf("A");
-		printf("\n");
+		for (int i = 0; i < 9; i++){
+			usart_write(USART_COM, infos[i]);
+		}
+		
+		// envia fim de pacote
+		while(!usart_is_tx_ready(USART_COM)) {
+			vTaskDelay(10 / portTICK_PERIOD_MS);
+		}
+		usart_write(USART_COM, eof);
+
+		// dorme por 500 ms
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+		
+		//printf("A");
+		//for (int i = 0; i < 9; i++){
+		//	printf("%c", infos[i]);
+		//}
+		//printf("A");
+		//printf("\n");
 
 // 		printf("B");
 // 		for (int i = 0; i < 9; i++){
@@ -547,7 +564,7 @@ void task_bluetooth(void) {
 // 		printf("\n");
 		printf("%c", eof);
         // dorme por 500 ms
-        vTaskDelay(3 / portTICK_PERIOD_MS);
+        //vTaskDelay(3 / portTICK_PERIOD_MS);
     }
 }
 
@@ -755,28 +772,28 @@ int main(void) {
 	xQueueA2VYdigital = xQueueCreate(100, sizeof(int32_t));
 
     if (xQueueA1VX == NULL)
-        printf("falha em criar a queue xQueueA1VX \n");
+        //printf("falha em criar a queue xQueueA1VX \n");
 
     if (xQueueA1VY == NULL)
-        printf("falha em criar a queue xQueueA1VY \n");
+        //printf("falha em criar a queue xQueueA1VY \n");
 
     if (xQueueA1VXdigital == NULL)
-        printf("falha em criar a queue xQueueA1VX \n");
+        //printf("falha em criar a queue xQueueA1VX \n");
 
     if (xQueueA1VYdigital == NULL)
-        printf("falha em criar a queue xQueueA1VY \n");
+        //printf("falha em criar a queue xQueueA1VY \n");
 		
 	if (xQueueA2VX == NULL)
-		printf("falha em criar a queue xQueueA1VX \n");
+		//printf("falha em criar a queue xQueueA1VX \n");
 
 	if (xQueueA2VY == NULL)
-		printf("falha em criar a queue xQueueA1VY \n");
+		//printf("falha em criar a queue xQueueA1VY \n");
 
 	if (xQueueA2VXdigital == NULL)
-		printf("falha em criar a queue xQueueA1VX \n");
+		//printf("falha em criar a queue xQueueA1VX \n");
 
 	if (xQueueA2VYdigital == NULL)
-		printf("falha em criar a queue xQueueA1VY \n");
+		//printf("falha em criar a queue xQueueA1VY \n");
 
     /* Start the scheduler. */
     vTaskStartScheduler();
