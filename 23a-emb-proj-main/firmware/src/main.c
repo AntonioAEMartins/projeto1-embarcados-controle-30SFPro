@@ -68,7 +68,7 @@
 #define BUT9_IDX      5
 #define BUT9_IDX_MASK (1 << BUT9_IDX)
 
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
 
 #ifdef DEBUG_SERIAL
 #define USART_COM USART1
@@ -100,6 +100,8 @@ volatile int flag5;
 volatile int flag6;
 volatile int flag7;
 volatile int flag8;
+
+volatile int hand = 0;
 
 #define TASK_BLUETOOTH_STACK_SIZE (4096 / sizeof(portSTACK_TYPE))
 #define TASK_BLUETOOTH_STACK_PRIORITY (tskIDLE_PRIORITY)
@@ -369,9 +371,9 @@ static void config_AFEC_pot(Afec *afec) {
 /************************************************************************/
 
 void task_bluetooth(void) {
-    //printf("Task Bluetooth started \n");
+    // printf("Task Bluetooth started \n");
 
-    //printf("Inicializando HC05 \n");
+    // printf("Inicializando HC05 \n");
     config_usart0();
     hc05_init();
 
@@ -379,176 +381,200 @@ void task_bluetooth(void) {
     io_init();
     /* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
     char infos[] = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
-	char buttons[10] = "000000000";
+    char buttons[10] = "000000000";
     char eof = 'X';
-	
-	printf("%c", eof);
+    char buffer_rx[128];
+    char hand_shake = 'h';
+    char hand_recebido[2];
+
+    while (!hand) {
+        usart_write(USART_COM, hand_shake);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        usart_read(USART_COM, hand_recebido);
+        if (hand_recebido[0] == hand_shake) {
+            hand = 1;
+        }
+    }
+
+    for (;;) {
+
+        if (hand) {
+            int32_t estado_ana_x_axis, estado_ana_y_axis;
+            while (xQueueReceive(xQueueA1VXdigital, &estado_ana_x_axis, 1)) {
+
+                if (estado_ana_x_axis == 1) {
+                    /* direita */
+                    infos[5] = '1';
+                    infos[7] = '0';
+                    flag5 = 1;
+                    flag7 = 0;
+                } else if (estado_ana_x_axis == 0) {
+                    /* esquerda */
+                    infos[5] = '0';
+                    infos[7] = '1';
+                    flag5 = 0;
+                    flag7 = 1;
+                } else {
+                    /* parado */
+                    infos[5] = '0';
+                    infos[7] = '0';
+                    flag5 = 0;
+                    flag7 = 0;
+                }
+            }
+
+            while (xQueueReceive(xQueueA1VYdigital, &estado_ana_y_axis, 1)) {
+                if (estado_ana_y_axis == 1) {
+                    /* BAIXO */
+                    infos[4] = '1';
+                    infos[6] = '0';
+                    flag4 = 1;
+                    flag6 = 0;
+                } else if (estado_ana_y_axis == 0) {
+                    /* CIMA */
+                    infos[4] = '0';
+                    infos[6] = '1';
+                    flag4 = 0;
+                    flag6 = 1;
+                } else {
+                    /* parado */
+                    infos[4] = '0';
+                    infos[6] = '0';
+                    flag4 = 0;
+                    flag6 = 0;
+                }
+            }
+
+            /* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
+            int32_t estado_ana_x2_axis, estado_ana_y2_axis;
+            while (xQueueReceive(xQueueA2VXdigital, &estado_ana_x2_axis, 1)) {
+
+                if (estado_ana_x2_axis == 1) {
+                    /* A */
+                    infos[1] = '1';
+                    infos[3] = '0';
+                    flag1 = 1;
+                    flag3 = 0;
+                } else if (estado_ana_x2_axis == 0) {
+                    /* Y */
+                    infos[1] = '0';
+                    infos[3] = '1';
+                    flag1 = 0;
+                    flag3 = 1;
+                } else {
+                    /* NADA */
+                    infos[1] = '0';
+                    infos[3] = '0';
+                    flag1 = 0;
+                    flag3 = 0;
+                }
+            }
+
+            while (xQueueReceive(xQueueA2VYdigital, &estado_ana_y2_axis, 1)) {
+                if (estado_ana_y2_axis == 1) {
+                    /* b */
+                    infos[0] = '1';
+                    infos[2] = '0';
+                    flag0 = 1;
+                    flag2 = 0;
+                } else if (estado_ana_y2_axis == 0) {
+                    /* x */
+                    infos[0] = '0';
+                    infos[2] = '1';
+                    flag0 = 0;
+                    flag2 = 1;
+                } else {
+                    /* nada */
+                    infos[0] = '0';
+                    infos[2] = '0';
+                    flag0 = 0;
+                    flag2 = 0;
+                }
+            }
+
+            if (pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
+                infos[0] = '1';
+            } else if (!flag0) {
+                infos[0] = '0';
+            }
+            if (pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
+                infos[1] = '1';
+            } else if (!flag1) {
+                infos[1] = '0';
+            }
+            if (pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
+                infos[2] = '1';
+            } else if (!flag2) {
+                infos[2] = '0';
+            }
+
+            if (pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
+                infos[3] = '1';
+            } else if (!flag3) {
+                infos[3] = '0';
+            }
+
+            if (pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
+                infos[4] = '1';
+            } else if (!flag4) {
+                infos[4] = '0';
+            }
+            if (pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
+                infos[5] = '1';
+            } else if (!flag5) {
+                infos[5] = '0';
+            }
+
+            if (pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
+                infos[6] = '1';
+            } else if (!flag6) {
+                infos[6] = '0';
+            }
+
+            if (pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
+                infos[7] = '1';
+            } else if (!flag7) {
+                infos[7] = '0';
+            }
+
+            if (pio_get(BUT9_PIO, PIO_INPUT, BUT9_IDX_MASK) == 0) {
+                infos[8] = '1';
+            } else if (!flag8) {
+                infos[8] = '0';
+            }
+
+            // printf("A");
+			char teste = 'A';
+			usart_write(USART_COM, teste);
+			
+            for (int i = 0; i < 9; i++) {
+				while(!usart_is_tx_ready(USART_COM)) {
+					vTaskDelay(1 / portTICK_PERIOD_MS);
+				}
+                usart_write(USART_COM, infos[i]);
+                vTaskDelay(5 / portTICK_PERIOD_MS);
+                // printf("%c", infos[i]);
+            }
+            usart_write(USART_COM, eof);
+            // printf("A");
+            // printf("\n");
+
+            // 		printf("B");
+            // 		for (int i = 0; i < 9; i++){
+            // 			printf("%c", buttons[i]);
+            // 		}
+            // 		printf("B");
+            // 		printf("\n");
+            // printf("%c", BAeof);
+            // dorme por 500 ms
+            vTaskDelay(5 / portTICK_PERIOD_MS);
+        }
+    }
+
+    // printf("%c", eof);
+    // usart_send_command(USART_COM, buffer_rx, 1000, eof, 100);
 
     // Task não deve retornar.
-    for (;;) {
-        int32_t estado_ana_x_axis,estado_ana_y_axis;
-        while (xQueueReceive(xQueueA1VXdigital, &estado_ana_x_axis, 1)) {
-			
-            if (estado_ana_x_axis == 1) {
-				/* direita */
-                infos[5] = '1';
-                infos[7] = '0';
-				flag5 = 1;
-				flag7 = 0;
-            } else if (estado_ana_x_axis == 0) {
-				/* esquerda */
-                infos[5] = '0';
-                infos[7] = '1';
-				flag5 = 0;
-				flag7 = 1;
-            } else {
-				/* parado */
-                infos[5] = '0';
-                infos[7] = '0';
-				flag5 = 0;
-				flag7 = 0;
-            }
-        }
-		
-		while (xQueueReceive(xQueueA1VYdigital, &estado_ana_y_axis, 1)) {
-			if (estado_ana_y_axis == 1) {
-				/* BAIXO */
-				infos[4] = '1';
-				infos[6] = '0';
-				flag4 = 1;
-				flag6 = 0;
-			} else if (estado_ana_y_axis == 0) {
-				/* CIMA */
-				infos[4] = '0';
-				infos[6] = '1';	
-				flag4 = 0;
-				flag6 = 1;
-			} else {
-				/* parado */
-				infos[4] = '0';
-				infos[6] = '0';
-				flag4 = 0;
-				flag6 = 0;
-			}
-		}
-		
-		/* ordem: B,A,X,Y,BAIXO,DIREITA,CIMA,ESQUERDA,DESLIGA */
-		int32_t estado_ana_x2_axis, estado_ana_y2_axis;
-		while (xQueueReceive(xQueueA2VXdigital, &estado_ana_x2_axis, 1)) {
-			        
-			if (estado_ana_x2_axis == 1) {
-				/* A */
-				infos[1] = '1';
-				infos[3] = '0';
-				flag1 = 1;
-				flag3 = 0;
-			} else if (estado_ana_x2_axis == 0) {
-				/* Y */
-				infos[1] = '0';
-				infos[3] = '1';
-				flag1 = 0;
-				flag3 = 1;
-			} else {
-				/* NADA */
-				infos[1] = '0';
-				infos[3] = '0';
-				flag1 = 0;
-				flag3 = 0;
-			}
-		}
-		        
-		while (xQueueReceive(xQueueA2VYdigital, &estado_ana_y2_axis, 1)) {
-			if (estado_ana_y2_axis == 1) {
-				/* b */
-				infos[0] = '1';
-				infos[2] = '0';
-				flag0 = 1;
-				flag2 = 0;
-			} else if (estado_ana_y2_axis == 0) {
-				/* x */
-				infos[0] = '0';
-				infos[2] = '1';
-				flag0 = 0;
-				flag2 = 1;
-			} else {
-				/* nada */
-				infos[0] = '0';
-				infos[2] = '0';
-				flag0 = 0;
-				flag2 = 0;
-			}
-		}
-		
-		
-		
-		if(pio_get(BUT1_PIO, PIO_INPUT, BUT1_IDX_MASK) == 0) {
-			infos[0] = '1';
-			} else if (!flag0) {
-			infos[0] = '0';
-		}
-		if(pio_get(BUT2_PIO, PIO_INPUT, BUT2_IDX_MASK) == 0) {
-			infos[1] = '1';
-			} else if (!flag1) {
-			infos[1] = '0';
-		}
-		if(pio_get(BUT3_PIO, PIO_INPUT, BUT3_IDX_MASK) == 0) {
-			infos[2] = '1';
-			} else if (!flag2){
-			infos[2] = '0';
-		}
-		
-		if(pio_get(BUT4_PIO, PIO_INPUT, BUT4_IDX_MASK) == 0) {
-			infos[3] = '1';
-			} else if (!flag3){
-			infos[3] = '0';
-		}
-		
-		if(pio_get(BUT5_PIO, PIO_INPUT, BUT5_IDX_MASK) == 0) {
-			infos[4] = '1';
-			} else if (!flag4){
-			infos[4] = '0';
-		}
-		if(pio_get(BUT6_PIO, PIO_INPUT, BUT6_IDX_MASK) == 0) {
-			infos[5] = '1';
-			} else if (!flag5){
-			infos[5] = '0';
-		}
-		
-		if(pio_get(BUT7_PIO, PIO_INPUT, BUT7_IDX_MASK) == 0) {
-			infos[6] = '1';
-			} else if (!flag6){
-			infos[6] = '0';
-		}
-		
-		if(pio_get(BUT8_PIO, PIO_INPUT, BUT8_IDX_MASK) == 0) {
-			infos[7] = '1';
-			} else if (!flag7){
-			infos[7] = '0';
-		}
-		
-		if(pio_get(BUT9_PIO, PIO_INPUT, BUT9_IDX_MASK) == 0) {
-			infos[8] = '1';
-			} else if (!flag8){
-			infos[8] = '0';
-		}
-		
-		printf("A");
-		for (int i = 0; i < 9; i++){
-			printf("%c", infos[i]);
-		}
-		printf("A");
-		printf("\n");
-
-// 		printf("B");
-// 		for (int i = 0; i < 9; i++){
-// 			printf("%c", buttons[i]);
-// 		}
-// 		printf("B");
-// 		printf("\n");
-		printf("%c", eof);
-        // dorme por 500 ms
-        vTaskDelay(3 / portTICK_PERIOD_MS);
-    }
 }
 
 void xTimerA1VXCallback(TimerHandle_t xTimerA1VX) {

@@ -25,24 +25,30 @@ class SerialControllerInterface:
         self.ser = Serial(port, baudrate=baudrate)
         self.mapping = MyControllerMap()
         self.incoming = '0'
+        self.hand_shake = 0
         pyautogui.PAUSE = 0  ## remove delay
     
     def update(self):
         data = self.ser.read()
         # == Checando Analogico
         estado_analogico = 0
+        if data == b'h' and self.hand_shake == 0:
+            print("Recebeu HandShake")
+            self.ser.write(b'h')
+            self.hand_shake = 1
         if data == b'A':
             estado_analogico = 1
         recebido = []
         while (estado_analogico):
             data = self.ser.read()
-            if data == b'A':
+            print(data)
+            if data == b'X':
                 estado_analogico = 0
                 break
             recebido.append(data)
-            logging.debug("Received DATA: {}".format(data))
+            logging.debug("Received DATBABA: {}".format(data))
 
-        if len(recebido) > 0:
+        if len(recebido) > 8:
             #Buttons Detection
 
             if recebido[0] == b'1':
@@ -134,11 +140,11 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    print("Connection to {} using {} interface ({})".format("COM4",args.controller_interface, args.baudrate))
+    print("Connection to {} using {} interface ({})".format("COM5",args.controller_interface, args.baudrate))
     if args.controller_interface == 'dummy':
         controller = DummyControllerInterface()
     else:
-        controller = SerialControllerInterface(port="COM4", baudrate=args.baudrate)
+        controller = SerialControllerInterface(port="COM5", baudrate=args.baudrate)
 
     while True:
         controller.update()
